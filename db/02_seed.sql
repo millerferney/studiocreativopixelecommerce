@@ -1,24 +1,52 @@
 -- =====================================================================
 -- Studio Creativo Pixel — Datos iniciales (catálogo de la web + parámetros)
--- Ejecutar DESPUÉS de 01_schema.sql. Es re-ejecutable (ON CONFLICT DO NOTHING).
+-- Ejecutar DESPUÉS de 01_schema.sql. Es re-ejecutable y auto-reparable.
 -- El primer administrador NO se crea aquí (no se guardan contraseñas en SQL):
 --   usar  npm run db:admin  (lee ADMIN_EMAIL / ADMIN_PASSWORD del entorno).
 -- =====================================================================
 
+SET client_encoding = 'UTF8';
+
+-- Roles
 INSERT INTO rol (nombre, descripcion) VALUES
   ('CLIENTE',       'Compra en la tienda y consulta sus pedidos y facturas'),
   ('ADMINISTRADOR', 'Gestiona catálogo, usuarios, pedidos, pagos y facturas'),
   ('DISENADOR',     'Atiende las órdenes de trabajo de producción')
-ON CONFLICT (nombre) DO NOTHING;
+ON CONFLICT (nombre) DO UPDATE SET descripcion = EXCLUDED.descripcion;
 
 -- Categorías (select del catálogo: Tazas y Mugs / Ropa y Textiles / Accesorios)
 INSERT INTO categoria (nombre, descripcion) VALUES
   ('Tazas',      'Tazas, mugs y vasos personalizados por sublimación'),
   ('Ropa',       'Ropa y textiles con sublimación de alta definición'),
   ('Accesorios', 'Carcasas, gorras, llaveros y botellas personalizadas')
-ON CONFLICT (nombre) DO NOTHING;
+ON CONFLICT (nombre) DO UPDATE SET descripcion = EXCLUDED.descripcion;
 
 -- Productos (los 8 del catálogo + Gorra Vector-Core de la página Servicios)
+-- 1. Reparar nombres en caso de que hayan quedado guardados con mojibake previamente
+UPDATE servicio_producto SET nombre = 'Llavero Acrílico' WHERE nombre LIKE 'Llavero Acr%lico';
+
+-- 2. Actualizar descripciones e información de productos existentes si ya existen
+UPDATE servicio_producto AS s
+SET descripcion = v.descripcion,
+    precio = v.precio,
+    tiempo_entrega = v.dias,
+    imagen_url = v.img,
+    badge = v.badge,
+    destacado = v.destacado
+FROM (VALUES
+  ('Taza Esmerilada',     'Taza con acabado esmerilado para sublimación a todo color.',                         25000,  3, '/assets/productos/taza-esmerilada.jpg',     'OFERTA', false),
+  ('Gorra Snapback',      'Gorra snapback con panel frontal personalizable.',                                    35000,  4, '/assets/productos/gorra-snapback.png',      NULL,     false),
+  ('Taza Pixel-Glow',     'Cerámica de alta calidad con recubrimiento especial para máxima retención de color.', 38000,  3, '/assets/productos/taza-pixel-glow.jpg',     NULL,     true),
+  ('Hoodie Tech-Spec',    'Poliéster técnico diseñado para aguantar lavadas y sublimación sin pérdida de detalle.', 95000, 5, '/assets/productos/hoodie-tech-spec.webp',  'NUEVO',  true),
+  ('Carcasa iPhone 14',   'Carcasa protectora con impresión sublimada de alta resolución.',                      42000,  4, '/assets/productos/carcasa-iphone-14.jpg',   NULL,     false),
+  ('Vaso Stanley Custom', 'Vaso térmico de acero inoxidable con diseño personalizado.',                          120000, 5, '/assets/productos/vaso-stanley-custom.jpg', 'PRO',    false),
+  ('Llavero Acrílico',    'Llavero de acrílico con impresión a doble cara.',                                      8000,  2, '/assets/productos/llavero-acrilico.jpg',    NULL,     false),
+  ('Botella Aluminio',    'Botella de aluminio ligera con acabado personalizado.',                               28000,  3, '/assets/productos/botella-aluminio.jpg',    NULL,     false),
+  ('Gorra Vector-Core',   'Panel frontal 100% personalizable. Colores resistentes al sol y lavados.',            25000,  4, '/assets/productos/gorra-snapback.png',      NULL,     true)
+) AS v(nombre, descripcion, precio, dias, img, badge, destacado)
+WHERE s.nombre = v.nombre;
+
+-- 3. Insertar productos nuevos que no existan
 INSERT INTO servicio_producto (nombre, descripcion, precio, tiempo_entrega, estado, tipo, imagen_url, badge, destacado, id_categoria)
 SELECT v.nombre, v.descripcion, v.precio, v.dias, 'DISPONIBLE', 'PRODUCTO', v.img, v.badge, v.destacado,
        (SELECT id_categoria FROM categoria WHERE nombre = v.cat)
@@ -34,9 +62,17 @@ FROM (VALUES
   (9, 'Gorra Vector-Core',   'Panel frontal 100% personalizable. Colores resistentes al sol y lavados.',            25000,  4, '/assets/productos/gorra-snapback.png',      NULL,     true,  'Accesorios')
 ) AS v(ord, nombre, descripcion, precio, dias, img, badge, destacado, cat)
 WHERE NOT EXISTS (SELECT 1 FROM servicio_producto s WHERE s.nombre = v.nombre)
-ORDER BY v.ord;  -- orden fijo => ids estables (1 = Taza Esmerilada ... 9 = Gorra Vector-Core)
+ORDER BY v.ord;
 
 -- Opciones de personalización (tallas y materiales)
+-- 1. Reparar opciones dañadas previamente por codificación
+UPDATE opcion_producto SET valor = 'Algodón 100%' WHERE valor LIKE 'Algod%100%';
+UPDATE opcion_producto SET valor = 'Poliéster'    WHERE valor LIKE 'Poli%ster%';
+UPDATE opcion_producto SET valor = 'Acrílico'     WHERE valor LIKE 'Acr%lico' AND valor NOT LIKE 'Acr%lico %';
+UPDATE opcion_producto SET valor = 'Acrílico Claro' WHERE valor LIKE 'Acr%lico Claro';
+UPDATE opcion_producto SET valor = 'Acrílico Blanco' WHERE valor LIKE 'Acr%lico Blanco';
+
+-- 2. Insertar opciones
 INSERT INTO opcion_producto (id_servicio, tipo, valor, orden)
 SELECT s.id_servicio, o.tipo, o.valor, o.orden
 FROM (VALUES
@@ -61,14 +97,18 @@ FROM (VALUES
   ('Gorra Vector-Core','MATERIAL','Algodón 100%',1),('Gorra Vector-Core','MATERIAL','Poliéster',2)
 ) AS o(producto, tipo, valor, orden)
 JOIN servicio_producto s ON s.nombre = o.producto
-ON CONFLICT (id_servicio, tipo, valor) DO NOTHING;
+ON CONFLICT (id_servicio, tipo, valor) DO UPDATE SET orden = EXCLUDED.orden;
+
+-- Colores de la paleta
+UPDATE color_paleta SET nombre = 'Púrpura' WHERE hex = '#7C3AED';
 
 INSERT INTO color_paleta (nombre, hex, orden) VALUES
   ('Blanco','#FFFFFF',1),('Negro','#000000',2),('Rosa Neon','#FF2D78',3),('Cyan','#00E5FF',4),
   ('Verde Neon','#00FF00',5),('Púrpura','#7C3AED',6),('Naranja','#FF6B00',7),('Dorado','#FFD700',8),
   ('Rojo','#FF0000',9),('Azul Marino','#1A237E',10),('Verde Oscuro','#004D40',11),('Gris Acero','#37474F',12)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (hex) DO UPDATE SET nombre = EXCLUDED.nombre, orden = EXCLUDED.orden;
 
+-- Estilos de diseño (incluyen caracteres Unicode y emojis en UTF-8)
 INSERT INTO estilo_diseno (codigo, etiqueta, descripcion, icono, orden) VALUES
   ('minimal',   'Minimalista', 'Limpio y simple',          '◻', 1),
   ('gradient',  'Degradado',   'Colores en transición',    '🌈', 2),
@@ -76,14 +116,22 @@ INSERT INTO estilo_diseno (codigo, etiqueta, descripcion, icono, orden) VALUES
   ('neon',      'Neon Glow',   'Brillos neón',             '✦', 4),
   ('retro',     'Retro',       'Estilo vintage',           '◉', 5),
   ('custom',    'Tu archivo',  'Diseño propio',            '📁', 6)
-ON CONFLICT (codigo) DO NOTHING;
+ON CONFLICT (codigo) DO UPDATE SET
+  etiqueta = EXCLUDED.etiqueta,
+  descripcion = EXCLUDED.descripcion,
+  icono = EXCLUDED.icono,
+  orden = EXCLUDED.orden;
 
 -- Emisor de facturas. >>> REEMPLAZAR por los datos reales del RUT antes de producción <<<
 INSERT INTO configuracion_empresa
   (id, razon_social, nit, digito_verificacion, direccion, ciudad, departamento, codigo_municipio, telefono, email)
 VALUES
   (1, 'Studio Creativo Pixel S.A.S.', '900000000', '0', 'Dirección por configurar', 'Bogotá D.C.', 'Bogotá D.C.', '11001', '+57 300 000 0000', 'facturacion@studiocreativopixel.example')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  razon_social = EXCLUDED.razon_social,
+  direccion = EXCLUDED.direccion,
+  ciudad = EXCLUDED.ciudad,
+  departamento = EXCLUDED.departamento;
 
 -- Resolución de PRUEBAS (ambiente 2 / habilitación). En producción: cargar la resolución
 -- real otorgada por la DIAN (número, prefijo, rango, vigencia y clave técnica).

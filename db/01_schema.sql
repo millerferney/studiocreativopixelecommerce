@@ -5,6 +5,8 @@
 -- Es idempotente a nivel de objetos: usa IF NOT EXISTS donde es posible.
 -- =====================================================================
 
+SET client_encoding = 'UTF8';
+
 -- ---------- Utilidades ----------
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
 BEGIN

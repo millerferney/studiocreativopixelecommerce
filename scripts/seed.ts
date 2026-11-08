@@ -1,0 +1,38 @@
+/**
+ * Ejecuta db/02_seed.sql garantizando codificación UTF-8 en todas las plataformas (Windows / Mac / Linux).
+ * Uso: npm run db:seed
+ */
+import { readFileSync } from "fs";
+import { join } from "path";
+import { Client } from "pg";
+
+async function main() {
+  const url = process.env.DIRECT_URL || process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("No se encontró DIRECT_URL ni DATABASE_URL en el archivo .env");
+  }
+
+  console.log("Conectando a la base de datos de Supabase...");
+  const client = new Client({
+    connectionString: url,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  await client.connect();
+  console.log("✔ Conectado a PostgreSQL.");
+
+  const sqlPath = join(process.cwd(), "db", "02_seed.sql");
+  const sql = readFileSync(sqlPath, "utf-8");
+
+  console.log("Ejecutando db/02_seed.sql con codificación UTF-8...");
+  await client.query(sql);
+
+  console.log("✔ db/02_seed.sql ejecutado con éxito.");
+  await client.end();
+}
+
+main().catch((err) => {
+  console.error("✖ Error al ejecutar el seed:", err.message || err);
+  process.exit(1);
+});
+
