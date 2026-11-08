@@ -1,0 +1,355 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ARCHIVO GENERADO por scripts/gen-prisma-schema.py a partir de db/01_schema.sql.
+// La fuente de verdad del esquema es el SQL; Prisma solo se usa como cliente tipado.
+
+model Administrador {
+  idUsuario             Int         @id @map("id_usuario")
+  cargo                 String?     @db.VarChar(80)
+  usuario               Usuario     @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  @@map("administrador")
+}
+
+model Carrito {
+  idCarrito             Int         @id @default(autoincrement()) @map("id_carrito")
+  idCliente             Int         @map("id_cliente")
+  estado                String      @default("ABIERTO") @db.VarChar(12)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  cliente               Cliente     @relation(fields: [idCliente], references: [idUsuario], onDelete: Cascade)
+  itemCarritos          ItemCarrito[] 
+  @@map("carrito")
+}
+
+model Categoria {
+  idCategoria           Int         @id @default(autoincrement()) @map("id_categoria")
+  nombre                String      @unique @db.VarChar(80)
+  descripcion           String?     @db.VarChar(255)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  servicioProductos     ServicioProducto[] 
+  @@map("categoria")
+}
+
+model Cliente {
+  idUsuario             Int         @id @map("id_usuario")
+  tipoDocumento         String?     @map("tipo_documento") @db.VarChar(5)
+  numeroDocumento       String?     @map("numero_documento") @db.VarChar(20)
+  direccion             String?     @db.VarChar(200)
+  ciudad                String?     @db.VarChar(80)
+  departamento          String?     @db.VarChar(80)
+  usuario               Usuario     @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  carritos              Carrito[]   
+  pedidos               Pedido[]    
+  @@map("cliente")
+}
+
+model ColorPaleta {
+  idColor               Int         @id @default(autoincrement()) @map("id_color") @db.SmallInt
+  nombre                String      @unique @db.VarChar(40)
+  hex                   String      @unique @db.Char(7)
+  orden                 Int         @default(0) @db.SmallInt
+  @@map("color_paleta")
+}
+
+model ConfiguracionEmpresa {
+  id                    Int         @id @default(1) @db.SmallInt
+  razonSocial           String      @map("razon_social") @db.VarChar(160)
+  nit                   String      @db.VarChar(20)
+  digitoVerificacion    String      @map("digito_verificacion") @db.Char(1)
+  regimen               String      @default("Responsable de IVA") @db.VarChar(40)
+  direccion             String      @db.VarChar(200)
+  ciudad                String      @db.VarChar(80)
+  departamento          String      @db.VarChar(80)
+  codigoMunicipio       String      @default("11001") @map("codigo_municipio") @db.VarChar(5)
+  telefono              String?     @db.VarChar(30)
+  email                 String?     @db.VarChar(160)
+  ivaPorcentaje         Decimal     @default(19.00) @map("iva_porcentaje") @db.Decimal(5, 2)
+  descuentoPorcentaje   Decimal     @default(5.00) @map("descuento_porcentaje") @db.Decimal(5, 2)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  @@map("configuracion_empresa")
+}
+
+model DetallePedido {
+  idDetalle             Int         @id @default(autoincrement()) @map("id_detalle")
+  idPedido              Int         @map("id_pedido")
+  idServicio            Int         @map("id_servicio")
+  nombreItem            String      @map("nombre_item") @db.VarChar(120)
+  cantidad              Int
+  precioUnitario        Decimal     @map("precio_unitario") @db.Decimal(14, 2)
+  subtotal              Decimal     @db.Decimal(14, 2)
+  talla                 String?     @db.VarChar(60)
+  material              String?     @db.VarChar(60)
+  colorHex              String?     @map("color_hex") @db.Char(7)
+  estiloDiseno          String?     @map("estilo_diseno") @db.VarChar(40)
+  archivoDiseno         String?     @map("archivo_diseno") @db.VarChar(255)
+  notas                 String?     @db.VarChar(500)
+  pedido                Pedido      @relation(fields: [idPedido], references: [idPedido], onDelete: Cascade)
+  servicioProducto      ServicioProducto @relation(fields: [idServicio], references: [idServicio])
+  @@map("detalle_pedido")
+}
+
+model EstiloDiseno {
+  idEstilo              Int         @id @default(autoincrement()) @map("id_estilo") @db.SmallInt
+  codigo                String      @unique @db.VarChar(20)
+  etiqueta              String      @db.VarChar(40)
+  descripcion           String?     @db.VarChar(80)
+  icono                 String?     @db.VarChar(8)
+  orden                 Int         @default(0) @db.SmallInt
+  itemCarritos          ItemCarrito[] 
+  @@map("estilo_diseno")
+}
+
+model Factura {
+  idFactura             Int         @id @default(autoincrement()) @map("id_factura")
+  idPedido              Int         @unique @map("id_pedido")
+  idPago                Int         @unique @map("id_pago")
+  idResolucion          Int         @map("id_resolucion") @db.SmallInt
+  prefijo               String      @db.VarChar(6)
+  consecutivo           Int
+  numeroFactura         String      @unique @map("numero_factura") @db.VarChar(20)
+  cufe                  String      @unique @db.Char(96)
+  estado                String      @default("EMITIDA") @db.VarChar(12)
+  ambiente              String      @default("2") @db.Char(1)
+  proveedor             String      @default("SIMULADO") @db.VarChar(30)
+  fechaEmision          DateTime    @default(now()) @map("fecha_emision") @db.Timestamptz(6)
+  adquirenteNombre      String      @map("adquirente_nombre") @db.VarChar(160)
+  adquirenteTipoDocumento String      @map("adquirente_tipo_documento") @db.VarChar(5)
+  adquirenteDocumento   String      @map("adquirente_documento") @db.VarChar(20)
+  adquirenteEmail       String      @map("adquirente_email") @db.VarChar(160)
+  adquirenteDireccion   String?     @map("adquirente_direccion") @db.VarChar(200)
+  subtotal              Decimal     @db.Decimal(14, 2)
+  descuento             Decimal     @default(0) @db.Decimal(14, 2)
+  baseGravable          Decimal     @map("base_gravable") @db.Decimal(14, 2)
+  ivaPorcentaje         Decimal     @map("iva_porcentaje") @db.Decimal(5, 2)
+  iva                   Decimal     @db.Decimal(14, 2)
+  total                 Decimal     @db.Decimal(14, 2)
+  xmlUbl                String      @map("xml_ubl")
+  qrData                String      @map("qr_data")
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  pedido                Pedido      @relation(fields: [idPedido], references: [idPedido])
+  pago                  Pago        @relation(fields: [idPago], references: [idPago])
+  resolucionFacturacion ResolucionFacturacion @relation(fields: [idResolucion], references: [idResolucion])
+  facturaItems          FacturaItem[] 
+  @@unique([idResolucion, consecutivo])
+  @@map("factura")
+}
+
+model FacturaItem {
+  idFacturaItem         Int         @id @default(autoincrement()) @map("id_factura_item")
+  idFactura             Int         @map("id_factura")
+  linea                 Int         @db.SmallInt
+  descripcion           String      @db.VarChar(255)
+  cantidad              Int
+  precioUnitario        Decimal     @map("precio_unitario") @db.Decimal(14, 2)
+  subtotal              Decimal     @db.Decimal(14, 2)
+  factura               Factura     @relation(fields: [idFactura], references: [idFactura], onDelete: Cascade)
+  @@unique([idFactura, linea])
+  @@map("factura_item")
+}
+
+model HistorialEstadoPedido {
+  idHistorial           Int         @id @default(autoincrement()) @map("id_historial")
+  idPedido              Int         @map("id_pedido")
+  estadoAnterior        String?     @map("estado_anterior") @db.VarChar(15)
+  estadoNuevo           String      @map("estado_nuevo") @db.VarChar(15)
+  idUsuario             Int?        @map("id_usuario")
+  comentario            String?     @db.VarChar(255)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  pedido                Pedido      @relation(fields: [idPedido], references: [idPedido], onDelete: Cascade)
+  usuario               Usuario?    @relation(fields: [idUsuario], references: [idUsuario], onDelete: SetNull)
+  @@map("historial_estado_pedido")
+}
+
+model ItemCarrito {
+  idItem                Int         @id @default(autoincrement()) @map("id_item")
+  idCarrito             Int         @map("id_carrito")
+  idServicio            Int         @map("id_servicio")
+  cantidad              Int
+  talla                 String?     @db.VarChar(60)
+  material              String?     @db.VarChar(60)
+  colorHex              String?     @map("color_hex") @db.Char(7)
+  idEstilo              Int?        @map("id_estilo") @db.SmallInt
+  archivoDiseno         String?     @map("archivo_diseno") @db.VarChar(255)
+  notas                 String?     @db.VarChar(500)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  carrito               Carrito     @relation(fields: [idCarrito], references: [idCarrito], onDelete: Cascade)
+  servicioProducto      ServicioProducto @relation(fields: [idServicio], references: [idServicio])
+  estiloDiseno          EstiloDiseno? @relation(fields: [idEstilo], references: [idEstilo])
+  @@map("item_carrito")
+}
+
+model Notificacion {
+  idNotificacion        Int         @id @default(autoincrement()) @map("id_notificacion")
+  idUsuario             Int         @map("id_usuario")
+  idPedido              Int?        @map("id_pedido")
+  tipo                  String      @db.VarChar(20)
+  titulo                String      @db.VarChar(120)
+  mensaje               String      @db.VarChar(500)
+  leida                 Boolean     @default(false)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  usuario               Usuario     @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  pedido                Pedido?     @relation(fields: [idPedido], references: [idPedido], onDelete: SetNull)
+  @@map("notificacion")
+}
+
+model OpcionProducto {
+  idOpcion              Int         @id @default(autoincrement()) @map("id_opcion")
+  idServicio            Int         @map("id_servicio")
+  tipo                  String      @db.VarChar(10)
+  valor                 String      @db.VarChar(60)
+  orden                 Int         @default(0) @db.SmallInt
+  servicioProducto      ServicioProducto @relation(fields: [idServicio], references: [idServicio], onDelete: Cascade)
+  @@unique([idServicio, tipo, valor])
+  @@map("opcion_producto")
+}
+
+model OrdenTrabajo {
+  idOrden               Int         @id @default(autoincrement()) @map("id_orden")
+  numeroOrden           String      @unique @default(dbgenerated("('OT-'::text || lpad((nextval('seq_numero_orden'::regclass))::text, 6, '0'::text))")) @map("numero_orden") @db.VarChar(20)
+  idPedido              Int         @unique @map("id_pedido")
+  idDisenador           Int?        @map("id_disenador")
+  estado                String      @default("EN_COLA") @db.VarChar(15)
+  prioridad             Int         @default(2) @db.SmallInt
+  notas                 String?     @db.VarChar(500)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  pedido                Pedido      @relation(fields: [idPedido], references: [idPedido], onDelete: Cascade)
+  usuario               Usuario?    @relation(fields: [idDisenador], references: [idUsuario], onDelete: SetNull)
+  @@map("orden_trabajo")
+}
+
+model Pago {
+  idPago                Int         @id @default(autoincrement()) @map("id_pago")
+  idPedido              Int         @map("id_pedido")
+  metodo                String      @db.VarChar(15)
+  estado                String      @default("PENDIENTE") @db.VarChar(12)
+  monto                 Decimal     @db.Decimal(14, 2)
+  moneda                String      @default("COP") @db.Char(3)
+  pasarela              String      @default("SIMULADA") @db.VarChar(30)
+  referencia            String      @unique @db.VarChar(60)
+  referenciaPasarela    String?     @map("referencia_pasarela") @db.VarChar(80)
+  marcaTarjeta          String?     @map("marca_tarjeta") @db.VarChar(20)
+  ultimos4              String?     @db.Char(4)
+  banco                 String?     @db.VarChar(80)
+  codigoRespuesta       String?     @map("codigo_respuesta") @db.VarChar(20)
+  mensaje               String?     @db.VarChar(255)
+  fechaPago             DateTime?   @map("fecha_pago") @db.Timestamptz(6)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  pedido                Pedido      @relation(fields: [idPedido], references: [idPedido])
+  factura               Factura?    
+  @@map("pago")
+}
+
+model Pedido {
+  idPedido              Int         @id @default(autoincrement()) @map("id_pedido")
+  numeroPedido          String      @unique @default(dbgenerated("('PEDIDO-'::text || nextval('seq_numero_pedido'::regclass))")) @map("numero_pedido") @db.VarChar(20)
+  idCliente             Int         @map("id_cliente")
+  estado                String      @default("PENDIENTE") @db.VarChar(15)
+  subtotal              Decimal     @db.Decimal(14, 2)
+  descuento             Decimal     @default(0) @db.Decimal(14, 2)
+  iva                   Decimal     @default(0) @db.Decimal(14, 2)
+  total                 Decimal     @db.Decimal(14, 2)
+  nombreCompleto        String      @map("nombre_completo") @db.VarChar(160)
+  tipoDocumento         String      @map("tipo_documento") @db.VarChar(5)
+  numeroDocumento       String      @map("numero_documento") @db.VarChar(20)
+  emailContacto         String      @map("email_contacto") @db.VarChar(160)
+  telefono              String?     @db.VarChar(30)
+  direccionEnvio        String      @map("direccion_envio") @db.VarChar(200)
+  ciudad                String      @db.VarChar(80)
+  departamento          String      @db.VarChar(80)
+  fechaEstimadaEntrega  DateTime?   @map("fecha_estimada_entrega") @db.Date
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  cliente               Cliente     @relation(fields: [idCliente], references: [idUsuario])
+  detallePedidos        DetallePedido[] 
+  historialEstadoPedidos HistorialEstadoPedido[] 
+  pagos                 Pago[]      
+  ordenTrabajo          OrdenTrabajo? 
+  notificacions         Notificacion[] 
+  factura               Factura?    
+  @@map("pedido")
+}
+
+model ResolucionFacturacion {
+  idResolucion          Int         @id @default(autoincrement()) @map("id_resolucion") @db.SmallInt
+  numero                String      @db.VarChar(30)
+  prefijo               String      @db.VarChar(6)
+  desde                 Int
+  hasta                 Int
+  consecutivoActual     Int         @map("consecutivo_actual")
+  fechaInicio           DateTime    @map("fecha_inicio") @db.Date
+  fechaFin              DateTime    @map("fecha_fin") @db.Date
+  claveTecnica          String      @map("clave_tecnica") @db.VarChar(100)
+  ambiente              String      @default("2") @db.Char(1)
+  activa                Boolean     @default(true)
+  facturas              Factura[]   
+  @@map("resolucion_facturacion")
+}
+
+model Rol {
+  idRol                 Int         @id @default(autoincrement()) @map("id_rol") @db.SmallInt
+  nombre                String      @unique @db.VarChar(30)
+  descripcion           String?     @db.VarChar(200)
+  usuarioRols           UsuarioRol[] 
+  @@map("rol")
+}
+
+model ServicioProducto {
+  idServicio            Int         @id @default(autoincrement()) @map("id_servicio")
+  nombre                String      @db.VarChar(120)
+  descripcion           String?
+  precio                Decimal     @db.Decimal(14, 2)
+  tiempoEntrega         Int         @map("tiempo_entrega")
+  estado                String      @default("DISPONIBLE") @db.VarChar(15)
+  tipo                  String      @default("PRODUCTO") @db.VarChar(10)
+  imagenUrl             String?     @map("imagen_url") @db.VarChar(255)
+  badge                 String?     @db.VarChar(20)
+  destacado             Boolean     @default(false)
+  idCategoria           Int         @map("id_categoria")
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  categoria             Categoria   @relation(fields: [idCategoria], references: [idCategoria], onDelete: Restrict)
+  opcionProductos       OpcionProducto[] 
+  itemCarritos          ItemCarrito[] 
+  detallePedidos        DetallePedido[] 
+  @@map("servicio_producto")
+}
+
+model Usuario {
+  idUsuario             Int         @id @default(autoincrement()) @map("id_usuario")
+  nombre                String      @db.VarChar(100)
+  apellido              String?     @db.VarChar(100)
+  email                 String      @db.VarChar(160)
+  telefono              String?     @db.VarChar(30)
+  passwordHash          String      @map("password_hash") @db.VarChar(100)
+  estado                String      @default("ACTIVO") @db.VarChar(10)
+  aceptaTerminosAt      DateTime?   @map("acepta_terminos_at") @db.Timestamptz(6)
+  ultimoLogin           DateTime?   @map("ultimo_login") @db.Timestamptz(6)
+  createdAt             DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  usuarioRols           UsuarioRol[] 
+  cliente               Cliente?    
+  administrador         Administrador? 
+  historialEstadoPedidos HistorialEstadoPedido[] 
+  ordenTrabajos         OrdenTrabajo[] 
+  notificacions         Notificacion[] 
+  @@map("usuario")
+}
+
+model UsuarioRol {
+  idUsuario             Int         @map("id_usuario")
+  idRol                 Int         @map("id_rol") @db.SmallInt
+  usuario               Usuario     @relation(fields: [idUsuario], references: [idUsuario], onDelete: Cascade)
+  rol                   Rol         @relation(fields: [idRol], references: [idRol])
+  @@id([idUsuario, idRol])
+  @@map("usuario_rol")
+}
+
