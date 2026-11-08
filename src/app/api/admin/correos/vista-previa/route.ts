@@ -6,6 +6,11 @@ export const GET = api(async (req) => {
   await requerirUsuario("ADMINISTRADOR");
   const html = vistaPrevia(new URL(req.url).searchParams.get("plantilla") ?? "");
   if (!html) throw badRequest("Plantilla desconocida.");
-  // CSP sandbox: la vista previa no puede ejecutar scripts ni acceder a la sesión
-  return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": "sandbox; default-src 'none'; img-src * data:; style-src 'unsafe-inline'" } });
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Content-Security-Policy": "default-src 'none'; img-src * data:; style-src 'unsafe-inline'",
+    },
+  });
 });

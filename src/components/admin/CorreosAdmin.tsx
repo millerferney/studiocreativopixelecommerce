@@ -10,7 +10,19 @@ interface Correo { idCorreo: number; destinatario: string; plantilla: string; as
 
 const COLOR: Record<string, string> = { ENVIADO: "adm-badge-green", ERROR: "adm-badge-danger", OMITIDO: "adm-badge-purple" };
 
-export function CorreosAdmin({ correos, proveedor, remitente, plantillas }: { correos: Correo[]; proveedor: string; remitente: string; plantillas: readonly string[] }) {
+export function CorreosAdmin({
+  correos,
+  proveedor,
+  remitente,
+  plantillas,
+  previews,
+}: {
+  correos: Correo[];
+  proveedor: string;
+  remitente: string;
+  plantillas: readonly string[];
+  previews?: Record<string, string>;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [probando, setProbando] = useState(false);
@@ -46,7 +58,13 @@ export function CorreosAdmin({ correos, proveedor, remitente, plantillas }: { co
               {plantillas.map((p) => <option key={p} value={p}>{p.replace(/_/g, " ")}</option>)}
             </select>
           </div>
-          <iframe title={`Vista previa ${vista}`} src={`/api/admin/correos/vista-previa?plantilla=${vista}`} sandbox="" className="w-full h-[520px] rounded-lg border border-px-border bg-fg" />
+          <iframe
+            title={`Vista previa ${vista}`}
+            srcDoc={previews?.[vista]}
+            src={!previews ? `/api/admin/correos/vista-previa?plantilla=${vista}` : undefined}
+            sandbox="allow-same-origin allow-popups"
+            className="w-full h-[520px] rounded-lg border border-px-border bg-white shadow-inner"
+          />
         </div>
       </div>
 
