@@ -494,40 +494,40 @@ h6 {
   z-index: -1;
 }
 
-/* ═══ FOOTER HOVER EFFECTS & SYSTEM DESIGN THEME ═══ */
+/* ═══ FOOTER THEME (MODO CLARO) ═══ */
 :root[data-theme="light"] .tienda-footer {
-  background: linear-gradient(180deg, #165b32 0%, rgb(var(--c-green)) 55%, #0e4624 100%) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
+  background: #ffffff !important;
+  border-top: 1px solid rgb(var(--c-fg) / 0.08) !important;
+  color: rgb(var(--c-fg)) !important;
 }
 
 :root[data-theme="light"] .tienda-footer h4 {
-  color: #ffffff !important;
+  color: rgb(var(--c-fg)) !important;
 }
 
 :root[data-theme="light"] .tienda-footer .footer-text {
-  color: rgba(255, 255, 255, 0.9) !important;
+  color: rgb(var(--c-faint)) !important;
 }
 
 :root[data-theme="light"] .tienda-footer .footer-nav-link {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: rgb(var(--c-faint)) !important;
 }
 
 :root[data-theme="light"] .tienda-footer .footer-nav-link:hover {
-  color: #a7f3d0 !important;
-  text-shadow: 0 0 10px rgba(167, 243, 208, 0.45);
+  color: #00ff00 !important;
+  text-shadow: none !important;
 }
 
 :root[data-theme="light"] .tienda-footer .footer-divider {
-  border-color: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgb(var(--c-fg) / 0.08) !important;
 }
 
 :root[data-theme="light"] .tienda-footer .footer-copyright {
-  color: rgba(255, 255, 255, 0.75) !important;
+  color: rgb(var(--c-subtle)) !important;
 }
 
 .footer-link:hover {
-  color: rgb(var(--c-green)) !important;
+  color: #00ff00 !important;
 }
 
 .footer-icon-wrap:hover img {
